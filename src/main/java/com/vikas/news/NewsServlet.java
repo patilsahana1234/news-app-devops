@@ -5,6 +5,7 @@ import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.io.BufferedReader;
@@ -13,6 +14,8 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Properties;
 
 public class NewsServlet extends HttpServlet {
@@ -22,11 +25,10 @@ public class NewsServlet extends HttpServlet {
 
     @Override
     public void init() throws ServletException {
-
         try (InputStream input = getClass().getClassLoader().getResourceAsStream("config.properties")) {
 
             if (input == null) {
-                throw new ServletException("config.properties not found in resources/");
+                throw new ServletException("config.properties not found.");
             }
 
             Properties props = new Properties();
@@ -57,12 +59,16 @@ public class NewsServlet extends HttpServlet {
         }
 
         JSONObject jsonObj = new JSONObject(json.toString());
+        JSONArray articles = jsonObj.getJSONArray("articles");
 
-        String headline = jsonObj.getJSONArray("articles")
-                                 .getJSONObject(0)
-                                 .getString("title");
+        List<String> headlines = new ArrayList<>();
 
-        req.setAttribute("headline", headline);
+        for (int i = 0; i < Math.min(10, articles.length()); i++) {
+            String title = articles.getJSONObject(i).getString("title");
+            headlines.add(title);
+        }
+
+        req.setAttribute("headlines", headlines);
         req.getRequestDispatcher("/index.jsp").forward(req, resp);
     }
 }

@@ -1,7 +1,18 @@
 <html>
 <body>
-    <h2>Latest News (Real-Time)</h2>
-    <h3><%= request.getAttribute("headline") %></h3>
+    <h2>Latest News (India)</h2>
+
+    <ul>
+        <% 
+            java.util.List<String> headlines = (java.util.List<String>) request.getAttribute("headlines");
+            for (String h : headlines) { 
+        %>
+            <li><%= h %></li>
+        <% 
+            } 
+        %>
+    </ul>
+
 </body>
 </html>
 
