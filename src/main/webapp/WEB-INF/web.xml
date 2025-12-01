@@ -1,14 +1,23 @@
 <web-app xmlns="https://jakarta.ee/xml/ns/jakartaee"
          version="5.0">
 
-    <servlet>
-        <servlet-name>NewsServlet</servlet-name>
-        <servlet-class>com.vikas.news.NewsServlet</servlet-class>
-    </servlet>
+  <servlet>
+    <servlet-name>NewsServlet</servlet-name>
+    <servlet-class>com.vikas.news.NewsServlet</servlet-class>
+  </servlet>
 
-    <servlet-mapping>
-        <servlet-name>NewsServlet</servlet-name>
-        <url-pattern>/news</url-pattern>
-    </servlet-mapping>
+  <servlet-mapping>
+    <servlet-name>NewsServlet</servlet-name>
+    <url-pattern>/news</url-pattern>
+  </servlet-mapping>
+
+  <servlet-mapping>
+    <servlet-name>NewsServlet</servlet-name>
+    <url-pattern>/news-data</url-pattern>
+  </servlet-mapping>
+
+  <welcome-file-list>
+    <welcome-file>news</welcome-file>
+  </welcome-file-list>
 
 </web-app>
