@@ -43,13 +43,12 @@ public class NewsServlet extends HttpServlet {
         }
     }
 
-    @Override
-    protected void doGet(HttpServletRequest req, HttpServletResponse resp)
-            throws IOException, ServletException {
+    private List<String> fetchNews(String fromDate, String toDate) throws IOException {
 
-        String today = LocalDate.now().toString(); // YYYY-MM-DD
-
-        String finalUrl = baseUrl + apiKey + "&from=" + today + "&to=" + today + "&sortBy=publishedAt";
+        String finalUrl = baseUrl + apiKey +
+                "&from=" + fromDate +
+                "&to=" + toDate +
+                "&sortBy=publishedAt";
 
         URL url = new URL(finalUrl);
         HttpURLConnection conn = (HttpURLConnection) url.openConnection();
@@ -64,17 +63,39 @@ public class NewsServlet extends HttpServlet {
         }
 
         JSONObject jsonObj = new JSONObject(json.toString());
-        JSONArray articles = jsonObj.getJSONArray("articles");
+        JSONArray articles = jsonObj.optJSONArray("articles");
 
         List<String> headlines = new ArrayList<>();
+        if (articles == null) return headlines;
 
         for (int i = 0; i < Math.min(10, articles.length()); i++) {
             headlines.add(articles.getJSONObject(i).getString("title"));
         }
 
-        req.setAttribute("date", today);
-        req.setAttribute("headlines", headlines);
+        return headlines;
+    }
 
+    @Override
+    protected void doGet(HttpServletRequest req, HttpServletResponse resp)
+            throws IOException, ServletException {
+
+        LocalDate today = LocalDate.now();
+        String todayStr = today.toString();
+
+        // Fetch today's news first
+        List<String> headlines = fetchNews(todayStr, todayStr);
+
+        // If no news found, fetch last 7 days
+        if (headlines.isEmpty()) {
+            LocalDate weekAgo = today.minusDays(7);
+            headlines = fetchNews(weekAgo.toString(), todayStr);
+
+            req.setAttribute("date", weekAgo + " to " + todayStr);
+        } else {
+            req.setAttribute("date", todayStr);
+        }
+
+        req.setAttribute("headlines", headlines);
         req.getRequestDispatcher("/index.jsp").forward(req, resp);
     }
 }
