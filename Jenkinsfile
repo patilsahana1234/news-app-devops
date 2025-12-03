@@ -5,7 +5,6 @@ pipeline {
 
         stage('Check & Install Java') {
             steps {  
-                
                 sh '''
                     echo "=== Checking Java ==="
                     if java -version >/dev/null 2>&1; then
@@ -82,7 +81,29 @@ pipeline {
                 '''
             }
         }
-    }
+
+        stage('Push Artifacts to JFrog Artifactory') {
+            steps {
+                script {
+                    def currentDate = new java.text.SimpleDateFormat("yyyy-MM-dd_HH-mm").format(new Date())
+                    def targetPath = "news-app/${currentDate}/"
+
+                    rtUpload(
+                        serverId: "jfrog",
+                        spec: """{
+                            "files": [
+                                {
+                                    "pattern": "target/news-app.war",
+                                    "target": "${targetPath}"
+                                }
+                            ]
+                        }"""
+                    )
+                }
+            }
+        }
+
+    } // end stages
 
     post {
         success {
