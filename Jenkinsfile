@@ -4,7 +4,8 @@ pipeline {
     stages {
 
         stage('Check & Install Java') {
-            steps {
+            steps {  
+                
                 sh '''
                     echo "=== Checking Java ==="
                     if java -version >/dev/null 2>&1; then
