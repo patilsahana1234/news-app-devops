@@ -76,5 +76,15 @@
 
         </plugins>
     </build>
+<distributionManagement>
+    <snapshotRepository>
+        <id>jfrog-snapshots</id>
+        <url>https://trialbnxe0b.jfrog.io/artifactory/news-app/</url>
+    </snapshotRepository>
 
+    <repository>
+        <id>jfrog-releases</id>
+        <url>https://trialbnxe0b.jfrog.io/artifactory/news-app-releases/</url>
+    </repository>
+</distributionManagement>
 </project>
