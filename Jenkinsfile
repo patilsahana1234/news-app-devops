@@ -4,6 +4,7 @@ pipeline {
     stages {
 
         stage('Check & Install Java') {
+            
             steps {
                 sh '''
                     echo "=== Checking Java ==="
