@@ -15,6 +15,7 @@ pipeline {
         }
 
         stage('Check Maven') {
+            
             steps {
                 sh 'mvn -version'
             }
