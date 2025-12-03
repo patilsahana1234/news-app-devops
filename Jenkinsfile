@@ -48,7 +48,7 @@ pipeline {
                         cd /opt
                         sudo wget https://archive.apache.org/dist/tomcat/tomcat-10/v10.1.30/bin/apache-tomcat-10.1.30.tar.gz
                         sudo tar -xzf apache-tomcat-10.1.30.tar.gz
-                        sudo mv apache-tomcat-10.1.30 tomcat10
+                        sudo mv apache-tomcat-10.1.30 tomcat10 /opt/tomcat10
                         sudo chmod +x /opt/tomcat10/bin/*.sh
                     fi
                 '''
