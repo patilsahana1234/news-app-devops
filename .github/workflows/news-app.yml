@@ -64,17 +64,19 @@ jobs:
 
     - name: Deploy WAR to Tomcat
       run: |
-        
-        sudo /opt/tomcat10/bin/shutdown.sh || true
+       echo "Stopping Tomcat"
+       sudo /opt/tomcat10/bin/shutdown.sh || true
 
-        echo "Remove old deployment if exist"
-        sudo rm -rf /opt/tomcat10/webapps/news-app
-        sudo rm -f /opt/tomcat10/webapps/news-app.war
+       echo "Removing old deployment"
+       sudo rm -rf /opt/tomcat10/webapps/news-app
+       sudo rm -f /opt/tomcat10/webapps/news-app.war
 
-        echo "Deploying new WAR"
-        sudo cp target/news-app.war /opt/tomcat10/webapps/
-        nohup tomcat10/bin/startup.sh &
-        sleep 10
+       echo "Deploying new WAR"
+       sudo cp target/news-app.war /opt/tomcat10/webapps/
+
+       echo "Starting Tomcat"
+       sudo /opt/tomcat10/bin/startup.sh
+       sleep 15
         
     - name: Status check
       run: |
