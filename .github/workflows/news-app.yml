@@ -79,12 +79,14 @@ jobs:
         
     - name: Status check
       run: |
-        curl -I http://localhost:8080/news-App/ || true
+        curl -I http://localhost:8080/news-app/ || true
         
     - name: Verify app content
       run: |
-        RESPONSE=$(curl -s http://localhost:8080/news-app/)
-        echo "$RESPONSE" | grep "Welcome to news App" || true
-        echo "$RESPONSE" | grep "Live News Categories" || true
-        echo "$RESPONSE" | grep "Top Headlines" || true
-        tomcat10/bin/shutdown.sh
+       RESPONSE=$(curl -s http://localhost:8080/news-app/)
+       echo "$RESPONSE" | grep "Welcome to news App" || true
+       echo "$RESPONSE" | grep "Live News Categories" || true
+       echo "$RESPONSE" | grep "Top Headlines" || true
+
+       echo "Stopping Tomcat"
+       sudo /opt/tomcat10/bin/shutdown.sh || true
