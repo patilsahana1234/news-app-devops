@@ -18,71 +18,32 @@ jobs:
       ARTIFACTORY_PATH: news-app
       JFROG_CLI_BUILD_NAME: news-app-build
       JFROG_CLI_BUILD_NUMBER: ${{ github.run_number }}
-      EC2_HOST: 13.203.199.150
 
     steps:
-    # 1. Checkout Code
-    - name: Checkout Source Code
-      uses: actions/checkout@v4
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
 
-    # 2. Setup JFrog CLI via OIDC
-    - name: Setup JFrog CLI (OIDC)
-      uses: jfrog/setup-jfrog-cli@v4
-      env:
-        JF_URL: ${{ secrets.JF_URL }}
-      with:
-        oidc-provider-name: 'news-app'
+      - name: Setup JFrog CLI (OIDC)
+        uses: jfrog/setup-jfrog-cli@v4
+        env:
+          JF_URL: ${{ secrets.JF_URL }}
+        with:
+          oidc-provider-name: 'news-app'
 
-    # 3. Verify JFrog CLI Installed
-    - name: Verify JFrog CLI
-      run: jf --version
+      - name: Verify JFrog CLI
+        run: jf --version
 
-    # 4. Build WAR File
-    - name: Build WAR File
-      run: mvn clean package -DskipTests
+      - name: Build WAR File
+        run: mvn clean package -DskipTests
 
-    # 5. Upload WAR File to Artifactory
-    - name: Upload WAR To Artifactory
-      run: |
-        ART_NAME="news-app-${{ github.run_number }}.war"
-        echo "Uploading WAR file to Artifactory..."
-        jf rt u "target/news-app.war" \
-          "${ARTIFACTORY_REPO}/${ARTIFACTORY_PATH}/${ART_NAME}" \
-          --flat=true
+      - name: Upload WAR TO Artifactory
+        run: |
+          ART_NAME="news-app-${{ github.run_number }}.war"
+          jf rt u "target/news-app.war" \
+            "${ARTIFACTORY_REPO}/${ARTIFACTORY_PATH}/${ART_NAME}" \
+            --flat=true
 
-    # 6. Capture Build Info & Publish to JFrog
-    - name: JFrog Build Info Publish
-      run: |
-        jf rt bag "$JFROG_CLI_BUILD_NAME" .
-        jf rt bp "$JFROG_CLI_BUILD_NAME" "$JFROG_CLI_BUILD_NUMBER"
-
-    # 7. Deploy on Tomcat
-    - name: Deploy WAR to Tomcat
-      run: |
-        echo "Stopping Tomcat..."
-        sudo /opt/tomcat10/bin/shutdown.sh || true
-
-        echo "Cleaning old deployment..."
-        sudo rm -rf /opt/tomcat10/webapps/news-app
-        sudo rm -f  /opt/tomcat10/webapps/news-app.war
-
-        echo "Copying new WAR..."
-        sudo cp target/news-app.war /opt/tomcat10/webapps/news-app.war
-
-        echo "Starting Tomcat..."
-        sudo /opt/tomcat10/bin/startup.sh
-        sleep 15
-
-    # 8. Health Check
-    - name: Health Check
-      run: |
-        echo "Checking Application..."
-        curl -I http://${{ env.EC2_HOST }}:8080/news-app/ || exit 0
-
-    # 9. Validate Webpage Content
-    - name: Verify App Content
-      run: |
-        RESPONSE=$(curl -s http://${{ env.EC2_HOST }}:8080/news-app/)
-        echo "$RESPONSE" | grep "Welcome to news App" || echo "Content Missing!"
-        echo "$RESPONSE" | grep "Live News Categories" || echo "Content Missing!"
-        echo "$RESPONSE" | grep "Top Headlines" || echo "Content Missing!"
+      - name: Collect Build Info
+        run: |
+          jf rt bag $JFROG_CLI_BUILD_NAME .
+          jf rt bp $JFROG_CLI_BUILD_NAME $JFROG_CLI_BUILD_NUMBER
