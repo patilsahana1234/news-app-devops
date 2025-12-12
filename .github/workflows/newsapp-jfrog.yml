@@ -2,11 +2,11 @@ name: news_app_jfrog
 
 permissions:
   id-token: write
-  contents: read
+  contents: write
+
 on:
   push:
     branches: [ feature-1 ]
-    
   pull_request:
 
 jobs:
@@ -14,114 +14,75 @@ jobs:
     runs-on: self-hosted
 
     env:
-      ARTIFACTORY_REPO: ${{ secrets.ARTIFACTORY_REPO }}    
-      ARTIFACTORY_PATH: news-app                           
-      JF_SERVER_ID: setup-jfrog-ci                        
-
+      ARTIFACTORY_REPO: ${{ secrets.ARTIFACTORY_REPO }}
+      ARTIFACTORY_PATH: news-app
+      JFROG_CLI_BUILD_NAME: news-app-build
+      JFROG_CLI_BUILD_NUMBER: ${{ github.run_number }}
+      EC2_HOST: 13.203.199.150
 
     steps:
-      - name: Checkout Source Code
-        uses: actions/checkout@v4
+    # 1. Checkout Code
+    - name: Checkout Source Code
+      uses: actions/checkout@v4
 
-      # Setup JFrog CLI and authenticate using OIDC to JFrog
-      - name: Setup JFrog CLI (OIDC)
-        uses: jfrog/setup-jfrog-cli@v4
-        env:
-          JF_URL: ${{ secrets.JF_URL }}                   # e.g. https://trialp900s0.jfrog.io
-        with:
-          oidc-provider-name: 'news-app'        # << REPLACE with the exact Provider Name in JFrog
-          # oidc-audience: 'your-audience-if-needed'      # optional: uncomment if JFrog requested a specific audience
+    # 2. Setup JFrog CLI via OIDC
+    - name: Setup JFrog CLI (OIDC)
+      uses: jfrog/setup-jfrog-cli@v4
+      env:
+        JF_URL: ${{ secrets.JF_URL }}
+      with:
+        oidc-provider-name: 'news-app'
 
-      - name: Verify JFrog CLI (basic)
-        run: |
-          jf --version || true
+    # 3. Verify JFrog CLI Installed
+    - name: Verify JFrog CLI
+      run: jf --version
 
+    # 4. Build WAR File
+    - name: Build WAR File
+      run: mvn clean package -DskipTests
 
+    # 5. Upload WAR File to Artifactory
+    - name: Upload WAR To Artifactory
+      run: |
+        ART_NAME="news-app-${{ github.run_number }}.war"
+        echo "Uploading WAR file to Artifactory..."
+        jf rt u "target/news-app.war" \
+          "${ARTIFACTORY_REPO}/${ARTIFACTORY_PATH}/${ART_NAME}" \
+          --flat=true
 
-      - name: Check & Install Java 17
-        run: |
-          echo "Checking Java"
-          if java -version >/dev/null 2>&1; then
-              echo "Java already installed"
-              java -version
-          else
-              echo "Installing Java 17..."
-              sudo apt update -y
-              sudo apt install -y openjdk-17-jdk
-              java -version
-          fi
+    # 6. Capture Build Info & Publish to JFrog
+    - name: JFrog Build Info Publish
+      run: |
+        jf rt bag "$JFROG_CLI_BUILD_NAME" .
+        jf rt bp "$JFROG_CLI_BUILD_NAME" "$JFROG_CLI_BUILD_NUMBER"
 
-      - name: Check & Install Maven
-        run: |
-          echo "Checking Maven"
-          if mvn -version >/dev/null 2>&1; then
-              echo "Maven already installed"
-              mvn -version
-          else
-              echo "Installing Maven"
-              sudo apt install -y maven
-              mvn -version
-          fi
+    # 7. Deploy on Tomcat
+    - name: Deploy WAR to Tomcat
+      run: |
+        echo "Stopping Tomcat..."
+        sudo /opt/tomcat10/bin/shutdown.sh || true
 
-      - name: Check & Install Tomcat 10
-        run: |
-          echo "Checking Tomcat installation"
-          if [ -d "/opt/tomcat10" ]; then
-              echo "Tomcat already installed"
-          else
-              echo "Installing Tomcat 10..."
-              cd /opt
-              sudo wget https://archive.apache.org/dist/tomcat/tomcat-10/v10.1.30/bin/apache-tomcat-10.1.30.tar.gz
-              sudo tar -xzf apache-tomcat-10.1.30.tar.gz
-              sudo mv apache-tomcat-10.1.30 /opt/tomcat10
-              sudo chmod +x /opt/tomcat10/bin/*.sh
-          fi
+        echo "Cleaning old deployment..."
+        sudo rm -rf /opt/tomcat10/webapps/news-app
+        sudo rm -f  /opt/tomcat10/webapps/news-app.war
 
-      - name: Build WAR File
-        run: |
-          mvn clean package -DskipTests
+        echo "Copying new WAR..."
+        sudo cp target/news-app.war /opt/tomcat10/webapps/news-app.war
 
-      - name: Upload WAR TO Artifactory
-        run: |
-          ART_NAME="news-app-${{ github.run_number }}.war"
-          echo "Uploading target/news-app.war -> $ARTIFACTORY_REPO/$ARTIFACTORY_PATH/$ART_NAME"
-          jf rt u "target/news-app.war" "${ARTIFACTORY_REPO}/${ARTIFACTORY_PATH}/${ART_NAME}" --flat=true
-          echo "Uploaded as: ${ARTIFACTORY_REPO}/${ARTIFACTORY_PATH}/${ART_NAME}"
-        env:
-          # ensure JF_URL is present for jf; setup action already configured the server with access token
-          JF_URL: ${{ secrets.JF_URL }}
+        echo "Starting Tomcat..."
+        sudo /opt/tomcat10/bin/startup.sh
+        sleep 15
 
+    # 8. Health Check
+    - name: Health Check
+      run: |
+        echo "Checking Application..."
+        curl -I http://${{ env.EC2_HOST }}:8080/news-app/ || exit 0
 
-
-
-          
-      - name: Deploy WAR to Tomcat
-        run: |
-          echo "Stopping Tomcat"
-          sudo /opt/tomcat10/bin/shutdown.sh || true
-
-          echo "Removing old deployment"
-          sudo rm -rf /opt/tomcat10/webapps/news-app
-          sudo rm -f /opt/tomcat10/webapps/news-app.war
-
-          echo "Deploying new WAR"
-          sudo cp target/news-app.war /opt/tomcat10/webapps/
-
-          echo "Starting Tomcat"
-          sudo /opt/tomcat10/bin/startup.sh
-          sleep 15
-
-
-      - name: Status check
-        run: |
-          curl -I http://13.203.199.150:8080/news-app/ || true
-
-      - name: Verify app content
-        run: |
-          RESPONSE=$(curl -s http://13.203.199.150:8080/news-app/)
-          echo "$RESPONSE" | grep "Welcome to news App" || true
-          echo "$RESPONSE" | grep "Live News Categories" || true
-          echo "$RESPONSE" | grep "Top Headlines" || true
-          sleep 60
-          echo "Stopping Tomcat"
-          sudo /opt/tomcat10/bin/shutdown.sh || true
+    # 9. Validate Webpage Content
+    - name: Verify App Content
+      run: |
+        RESPONSE=$(curl -s http://${{ env.EC2_HOST }}:8080/news-app/)
+        echo "$RESPONSE" | grep "Welcome to news App" || echo "Content Missing!"
+        echo "$RESPONSE" | grep "Live News Categories" || echo "Content Missing!"
+        echo "$RESPONSE" | grep "Top Headlines" || echo "Content Missing!"
