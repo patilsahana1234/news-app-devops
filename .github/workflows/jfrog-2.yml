@@ -4,7 +4,7 @@ permissions:
   contents: read
 on:
   push:
-    branches: [ feature-2 ]
+    branches: [ feature-2 ] 
     
     
   pull_request:
