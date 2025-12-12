@@ -1,5 +1,4 @@
 name: news_app_jfrog
-
 permissions:
   id-token: write
   contents: read
