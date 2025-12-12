@@ -29,7 +29,7 @@ jobs:
         env:
           JF_URL: ${{ secrets.JF_URL }}                   # e.g. https://trialp900s0.jfrog.io
         with:
-          oidc-provider-name: 'news-app-devops'        # << REPLACE with the exact Provider Name in JFrog
+          oidc-provider-name: 'news-app'        # << REPLACE with the exact Provider Name in JFrog
           # oidc-audience: 'your-audience-if-needed'      # optional: uncomment if JFrog requested a specific audience
 
       - name: Verify JFrog CLI (basic)
