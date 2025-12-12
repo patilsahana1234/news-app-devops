@@ -2,11 +2,10 @@ name: news_app_jfrog
 
 permissions:
   id-token: write
-  contents: write
+  contents: read
 on:
-
   push:
-    branches: [ feature-2 ]
+    branches: [ feature-1 ]
     
   pull_request:
 
